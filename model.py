@@ -1,19 +1,25 @@
 import sqlite3
+import bcrypt
 
-# Initialize SQLite database
-conn = sqlite3.connect('hairstylist_app.db')
+# Create database connection
+def get_db_connection():
+    conn = sqlite3.connect('hairstylist_app.db', check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+conn = get_db_connection()
 cursor = conn.cursor()
 
-# Create Users Table (for both hairstylists and clients)
+# Create tables
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
     password TEXT,
     user_type TEXT -- 'hairstylist' or 'client'
-)''')
+)
+''')
 
-# Create Hairstylists Table
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS hairstylists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,13 +29,13 @@ CREATE TABLE IF NOT EXISTS hairstylists (
     salon_price REAL,
     home_price REAL,
     availability TEXT,
-    location TEXT, -- e.g., city or area
+    location TEXT,
     style_image BLOB,
     rating REAL DEFAULT 0.0,
     FOREIGN KEY (user_id) REFERENCES users (id)
-)''')
+)
+''')
 
-# Create Bookings Table
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS bookings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,14 +43,14 @@ CREATE TABLE IF NOT EXISTS bookings (
     stylist_id INTEGER,
     date TEXT,
     time TEXT,
-    service_type TEXT, -- 'salon' or 'home'
+    service_type TEXT,
     price REAL,
-    status TEXT, -- 'pending', 'confirmed', 'completed'
+    status TEXT DEFAULT 'pending',
     FOREIGN KEY (client_id) REFERENCES users (id),
     FOREIGN KEY (stylist_id) REFERENCES hairstylists (id)
-)''')
+)
+''')
 
-# Create Reviews Table
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,18 +60,24 @@ CREATE TABLE IF NOT EXISTS reviews (
     comment TEXT,
     FOREIGN KEY (stylist_id) REFERENCES hairstylists (id),
     FOREIGN KEY (client_id) REFERENCES users (id)
-)''')
+)
+''')
+
 conn.commit()
 
 # User Authentication
 def register_user(username, password, user_type):
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     cursor.execute('INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)',
-                   (username, password, user_type))
+                   (username, hashed_password, user_type))
     conn.commit()
 
 def login_user(username, password):
-    cursor.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, password))
-    return cursor.fetchone()
+    cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+    user = cursor.fetchone()
+    if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        return user
+    return None
 
 # Add/Edit Hairstylist Profile
 def add_or_edit_hairstylist(user_id, name, styles, salon_price, home_price, availability, location, image_bytes):
@@ -75,10 +87,24 @@ def add_or_edit_hairstylist(user_id, name, styles, salon_price, home_price, avai
         (user_id, name, styles, salon_price, home_price, availability, location, image_bytes))
     conn.commit()
 
-# Fetch Hairstylists for Client Browsing
+# Fetch Hairstylists
 def fetch_hairstylists(location=None):
     query = 'SELECT * FROM hairstylists'
+    params = []
     if location:
-        query += f" WHERE location LIKE '%{location}%'"
-    cursor.execute(query)
+        query += " WHERE location LIKE ?"
+        params.append(f"%{location}%")
+    cursor.execute(query, params)
     return cursor.fetchall()
+
+def fetch_stylist_by_id(stylist_id):
+    cursor.execute('SELECT * FROM hairstylists WHERE id = ?', (stylist_id,))
+    return cursor.fetchone()
+
+# Booking
+def add_booking(client_id, stylist_id, date, time, service_type, price):
+    cursor.execute('''
+        INSERT INTO bookings (client_id, stylist_id, date, time, service_type, price, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)''',
+        (client_id, stylist_id, date, time, service_type, price, 'pending'))
+    conn.commit()
