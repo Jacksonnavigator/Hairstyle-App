@@ -5,31 +5,33 @@ import pandas as pd
 hairstylists = []
 bookings = []
 
-# Function to display hairstylists
+# Function to display hairstylists with styles
 def display_hairstylists():
     if hairstylists:
         st.subheader("Available Hairstylists")
         for stylist in hairstylists:
-            st.markdown(f"**Name:** {stylist['name']}")
-            st.markdown(f"**Styles Offered:** {stylist['styles']}")
-            st.markdown(f"**Salon Price:** {stylist['salon_price']} USD")
-            st.markdown(f"**Home Service Price:** {stylist['home_price']} USD")
+            st.markdown(f"### {stylist['name']}")
+            st.image(stylist['style_image'], use_column_width=True, caption=f"Styles: {stylist['styles']}")
+            st.markdown(f"**Salon Price:** ${stylist['salon_price']} USD")
+            st.markdown(f"**Home Service Price:** ${stylist['home_price']} USD")
             st.markdown("---")
     else:
         st.write("No hairstylists available yet.")
 
 # App Layout
-st.title("Hairstylist Booking App")
+st.set_page_config(page_title="Hairstylist Booking App", layout="wide")
+st.title("💇‍♀️ Hairstylist Booking App")
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Home", "Hairstylist Dashboard", "Client Booking"])
 
 if page == "Home":
     st.header("Welcome to the Hairstylist Booking App!")
+    st.image("https://images.unsplash.com/photo-1516646255117-8a3b9ef9cc2a", use_column_width=True)
     st.write("This app connects hairstylists and clients. Hairstylists can showcase their services, and clients can book them for salon or home services.")
     st.write("\n**Features:**")
-    st.write("- Hairstylists can create profiles and set prices.")
-    st.write("- Clients can browse and book hairstylists.")
-    st.write("- Dynamic pricing for home and salon services.")
+    st.markdown("- 🧑‍🎨 Hairstylists can create profiles and upload their styles.")
+    st.markdown("- 👩‍💻 Clients can browse and book hairstylists.")
+    st.markdown("- 💸 Dynamic pricing for home and salon services.")
 
 elif page == "Hairstylist Dashboard":
     st.header("Hairstylist Dashboard")
@@ -38,11 +40,15 @@ elif page == "Hairstylist Dashboard":
         styles = st.text_area("Describe the styles you offer")
         salon_price = st.number_input("Set your salon price (USD)", min_value=0.0, step=1.0)
         home_price = st.number_input("Set your home service price (USD)", min_value=0.0, step=1.0)
+        style_image = st.file_uploader("Upload an image of your hairstyle", type=["jpg", "png", "jpeg"])
         submit = st.form_submit_button("Add Hairstylist")
 
         if submit:
-            hairstylists.append({"name": name, "styles": styles, "salon_price": salon_price, "home_price": home_price})
-            st.success("Hairstylist profile added successfully!")
+            if style_image:
+                hairstylists.append({"name": name, "styles": styles, "salon_price": salon_price, "home_price": home_price, "style_image": style_image})
+                st.success("Hairstylist profile added successfully!")
+            else:
+                st.error("Please upload an image of your hairstyle.")
 
     display_hairstylists()
 
