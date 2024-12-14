@@ -1,4 +1,4 @@
-from model import register_user, login_user, fetch_hairstylists, fetch_stylist_by_id, add_booking, add_or_edit_hairstylist
+from model import register_user, login_user, fetch_hairstylists, add_booking, add_or_edit_hairstylist
 
 # User Signup
 def signup(username, password, user_type):
