@@ -1,19 +1,62 @@
 import streamlit as st
 import pandas as pd
+import sqlite3
 
-# Data Storage (Temporary for Demo)
-hairstylists = []
-bookings = []
+# Initialize SQLite database
+conn = sqlite3.connect('hairstylist_app.db')
+cursor = conn.cursor()
+
+# Create tables if they don't exist
+cursor.execute('''CREATE TABLE IF NOT EXISTS hairstylists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    styles TEXT,
+    salon_price REAL,
+    home_price REAL,
+    style_image BLOB
+)''')
+
+cursor.execute('''CREATE TABLE IF NOT EXISTS bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_name TEXT,
+    stylist_name TEXT,
+    service_type TEXT,
+    price REAL
+)''')
+conn.commit()
+
+# Function to add a hairstylist
+def add_hairstylist(name, styles, salon_price, home_price, style_image):
+    cursor.execute('''INSERT INTO hairstylists (name, styles, salon_price, home_price, style_image)
+                      VALUES (?, ?, ?, ?, ?)''', (name, styles, salon_price, home_price, style_image))
+    conn.commit()
+
+# Function to fetch all hairstylists
+def get_hairstylists():
+    cursor.execute('''SELECT * FROM hairstylists''')
+    return cursor.fetchall()
+
+# Function to add a booking
+def add_booking(client_name, stylist_name, service_type, price):
+    cursor.execute('''INSERT INTO bookings (client_name, stylist_name, service_type, price)
+                      VALUES (?, ?, ?, ?)''', (client_name, stylist_name, service_type, price))
+    conn.commit()
+
+# Function to fetch all bookings
+def get_bookings():
+    cursor.execute('''SELECT * FROM bookings''')
+    return cursor.fetchall()
 
 # Function to display hairstylists with styles
 def display_hairstylists():
+    hairstylists = get_hairstylists()
     if hairstylists:
         st.subheader("Available Hairstylists")
         for stylist in hairstylists:
-            st.markdown(f"### {stylist['name']}")
-            st.image(stylist['style_image'], use_column_width=True, caption=f"Styles: {stylist['styles']}")
-            st.markdown(f"**Salon Price:** ${stylist['salon_price']} USD")
-            st.markdown(f"**Home Service Price:** ${stylist['home_price']} USD")
+            st.markdown(f"### {stylist[1]}")
+            st.image(stylist[5], use_column_width=True, caption=f"Styles: {stylist[2]}")
+            st.markdown(f"**Salon Price:** ${stylist[3]} USD")
+            st.markdown(f"**Home Service Price:** ${stylist[4]} USD")
             st.markdown("---")
     else:
         st.write("No hairstylists available yet.")
@@ -45,7 +88,8 @@ elif page == "Hairstylist Dashboard":
 
         if submit:
             if style_image:
-                hairstylists.append({"name": name, "styles": styles, "salon_price": salon_price, "home_price": home_price, "style_image": style_image})
+                image_bytes = style_image.read()
+                add_hairstylist(name, styles, salon_price, home_price, image_bytes)
                 st.success("Hairstylist profile added successfully!")
             else:
                 st.error("Please upload an image of your hairstyle.")
@@ -54,24 +98,26 @@ elif page == "Hairstylist Dashboard":
 
 elif page == "Client Booking":
     st.header("Client Booking")
+    hairstylists = get_hairstylists()
     if not hairstylists:
         st.write("No hairstylists available for booking yet.")
     else:
         with st.form("booking_form"):
-            stylist_name = st.selectbox("Select a hairstylist", [stylist['name'] for stylist in hairstylists])
+            stylist_name = st.selectbox("Select a hairstylist", [stylist[1] for stylist in hairstylists])
             service_type = st.radio("Choose service type", ["Salon", "Home Service"])
             client_name = st.text_input("Enter your name")
             submit_booking = st.form_submit_button("Book Appointment")
 
             if submit_booking:
-                selected_stylist = next(stylist for stylist in hairstylists if stylist['name'] == stylist_name)
-                price = selected_stylist['salon_price'] if service_type == "Salon" else selected_stylist['home_price']
+                selected_stylist = next(stylist for stylist in hairstylists if stylist[1] == stylist_name)
+                price = selected_stylist[3] if service_type == "Salon" else selected_stylist[4]
 
-                bookings.append({"client": client_name, "stylist": stylist_name, "service": service_type, "price": price})
+                add_booking(client_name, stylist_name, service_type, price)
                 st.success(f"Appointment booked with {stylist_name} for a {service_type.lower()} at ${price:.2f}!")
 
         # Display bookings
+        bookings = get_bookings()
         if bookings:
             st.subheader("Bookings")
             for booking in bookings:
-                st.markdown(f"**Client:** {booking['client']} | **Stylist:** {booking['stylist']} | **Service:** {booking['service']} | **Price:** ${booking['price']}")
+                st.markdown(f"**Client:** {booking[1]} | **Stylist:** {booking[2]} | **Service:** {booking[3]} | **Price:** ${booking[4]}")
