@@ -105,10 +105,6 @@ def fetch_hairstylists(location=None):
     cursor.execute(query, params)
     return cursor.fetchall()
 
-def fetch_stylist_by_id(stylist_id):
-    cursor.execute('SELECT * FROM hairstylists WHERE id = ?', (stylist_id,))
-    return cursor.fetchone()
-
 # Booking
 def add_booking(client_id, stylist_id, date, time, service_type, price):
     cursor.execute('''
