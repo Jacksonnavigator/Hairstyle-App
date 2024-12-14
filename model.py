@@ -67,10 +67,18 @@ conn.commit()
 
 # User Authentication
 def register_user(username, password, user_type):
+    cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+    if cursor.fetchone():
+        return {"success": False, "message": "Username already exists."}
+
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    cursor.execute('INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)',
-                   (username, hashed_password, user_type))
-    conn.commit()
+    try:
+        cursor.execute('INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)',
+                       (username, hashed_password, user_type))
+        conn.commit()
+        return {"success": True, "message": "User registered successfully."}
+    except sqlite3.Error as e:
+        return {"success": False, "message": f"Database error: {e}"}
 
 def login_user(username, password):
     cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
