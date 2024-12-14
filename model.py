@@ -15,7 +15,7 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
-    password TEXT,
+    password TEXT, -- Ensure password is stored as TEXT
     user_type TEXT -- 'hairstylist' or 'client'
 )
 ''')
@@ -71,7 +71,7 @@ def register_user(username, password, user_type):
     if cursor.fetchone():
         return {"success": False, "message": "Username already exists."}
 
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     try:
         cursor.execute('INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)',
                        (username, hashed_password, user_type))
@@ -83,8 +83,19 @@ def register_user(username, password, user_type):
 def login_user(username, password):
     cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
     user = cursor.fetchone()
-    if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-        return user
+    
+    if not user:
+        print("User not found.")
+        return None
+
+    # Convert Row object to dictionary
+    user_dict = dict(user)
+
+    # Verify password
+    if 'password' in user_dict and user_dict['password']:
+        stored_password = user_dict['password']
+        if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
+            return user_dict
     return None
 
 # Add/Edit Hairstylist Profile
@@ -103,7 +114,7 @@ def fetch_hairstylists(location=None):
         query += " WHERE location LIKE ?"
         params.append(f"%{location}%")
     cursor.execute(query, params)
-    return cursor.fetchall()
+    return [dict(row) for row in cursor.fetchall()]  # Convert rows to dictionaries
 
 # Booking
 def add_booking(client_id, stylist_id, date, time, service_type, price):
