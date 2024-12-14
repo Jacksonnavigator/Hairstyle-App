@@ -54,7 +54,7 @@ def display_hairstylists():
         st.subheader("Available Hairstylists")
         for stylist in hairstylists:
             st.markdown(f"### {stylist[1]}")
-            st.image(stylist[5], use_column_width=True, caption=f"Styles: {stylist[2]}")
+            st.image(stylist[5], use_container_width=True, caption=f"Styles: {stylist[2]}")
             st.markdown(f"**Salon Price:** ${stylist[3]} USD")
             st.markdown(f"**Home Service Price:** ${stylist[4]} USD")
             st.markdown("---")
@@ -69,7 +69,7 @@ page = st.sidebar.radio("Go to", ["Home", "Hairstylist Dashboard", "Client Booki
 
 if page == "Home":
     st.header("Welcome to the Hairstylist Booking App!")
-    st.image("https://images.unsplash.com/photo-1516646255117-8a3b9ef9cc2a", use_column_width=True)
+    st.image("https://images.unsplash.com/photo-1516646255117-8a3b9ef9cc2a", use_container_width=True)
     st.write("This app connects hairstylists and clients. Hairstylists can showcase their services, and clients can book them for salon or home services.")
     st.write("\n**Features:**")
     st.markdown("- 🧑‍🎨 Hairstylists can create profiles and upload their styles.")
