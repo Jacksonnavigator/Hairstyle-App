@@ -80,25 +80,44 @@ def main():
         if user_type == "hairstylist":
             st.subheader("Manage Hairstylist Profile")
             name = st.text_input("Name")
-            styles = st.text_area("Styles Offered")
-            salon_price = st.number_input("Salon Price", min_value=0.0, step=0.01)
-            home_price = st.number_input("Home Service Price", min_value=0.0, step=0.01)
-            availability = st.text_input("Availability")
             location = st.text_input("Location")
-            image_bytes = None  # Add file uploader for image if needed
+            availability = st.text_input("Availability")
+            image_bytes = None  # Add file uploader for profile picture if needed
 
             if st.button("Save Profile"):
                 add_or_edit_hairstylist(
                     user_id=st.session_state["user"]["id"],
                     name=name,
-                    styles=styles,
-                    salon_price=salon_price,
-                    home_price=home_price,
+                    styles=None,  # This will be handled by individual style uploads
+                    salon_price=0,  # Placeholder
+                    home_price=0,  # Placeholder
                     availability=availability,
                     location=location,
                     image_bytes=image_bytes
                 )
                 st.success("Profile updated successfully.")
+
+            st.subheader("Upload Hairstyles")
+            style_name = st.text_input("Hairstyle Name")
+            style_price = st.number_input("Price", min_value=0.0, step=0.01)
+            style_image = st.file_uploader("Upload Hairstyle Image", type=["png", "jpg", "jpeg"])
+
+            if st.button("Add Hairstyle"):
+                if style_name and style_price and style_image:
+                    image_bytes = style_image.read()
+                    add_or_edit_hairstylist(
+                        user_id=st.session_state["user"]["id"],
+                        name=name,
+                        styles=f"{style_name}: {style_price}",
+                        salon_price=style_price,
+                        home_price=style_price,  # Assuming same price for simplicity
+                        availability=availability,
+                        location=location,
+                        image_bytes=image_bytes
+                    )
+                    st.success(f"Hairstyle '{style_name}' added successfully.")
+                else:
+                    st.error("Please provide all hairstyle details and upload an image.")
 
         elif user_type == "client":
             st.subheader("Manage Client Profile")
