@@ -1,66 +1,89 @@
-from model import register_user, login_user, fetch_hairstylists, add_booking, add_or_edit_hairstylist 
+import streamlit as st
+from model import register_user, login_user, fetch_hairstylists, add_booking, add_or_edit_hairstylist
 
-# User Signup
-def signup(username, password, user_type):
-    result = register_user(username, password, user_type)
-    if result["success"]:
-        print(result["message"])
-    else:
-        print(f"Error: {result['message']}")
+def main():
+    st.title("Hairstylist Booking App")
+    page = st.sidebar.selectbox("Choose Page", ["Sign Up", "Login", "View Hairstylists", "Book a Stylist", "Manage Profile"])
 
-# User Login
-def login(username, password):
-    user = login_user(username, password)
-    if user:
-        print(f"Welcome, {user['username']}! You are logged in as a {user['user_type']}.")
-        return user
-    else:
-        print("Invalid username or password.")
-        return None
+    if page == "Sign Up":
+        st.header("Sign Up")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        user_type = st.selectbox("User Type", ["hairstylist", "client"])
+        if st.button("Sign Up"):
+            result = register_user(username, password, user_type)
+            if result["success"]:
+                st.success(result["message"])
+            else:
+                st.error(f"Error: {result['message']}")
 
-# Fetch all hairstylists
-def view_hairstylists(location=None):
-    stylists = fetch_hairstylists(location)
-    if stylists:
-        for stylist in stylists:
-            print(f"Name: {stylist['name']}, Location: {stylist['location']}, Rating: {stylist['rating']}")
-    else:
-        print("No hairstylists found.")
+    elif page == "Login":
+        st.header("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            user = login_user(username, password)
+            if user:
+                st.success(f"Welcome, {user['username']}! You are logged in as a {user['user_type']}.")
+                st.session_state["user"] = user
+            else:
+                st.error("Invalid username or password.")
 
-# Book a stylist
-def book_stylist(client_id, stylist_id, date, time, service_type, price):
-    add_booking(client_id, stylist_id, date, time, service_type, price)
-    print("Booking request submitted successfully.")
+    elif page == "View Hairstylists":
+        st.header("View Hairstylists")
+        location = st.text_input("Search by Location")
+        if st.button("Search"):
+            stylists = fetch_hairstylists(location)
+            if stylists:
+                for stylist in stylists:
+                    st.write(f"**Name:** {stylist['name']}  ")
+                    st.write(f"**Location:** {stylist['location']}  ")
+                    st.write(f"**Rating:** {stylist['rating']}  ")
+                    st.write("---")
+            else:
+                st.info("No hairstylists found.")
 
-# Add or Edit Hairstylist Profile
-def manage_hairstylist_profile(user_id, name, styles, salon_price, home_price, availability, location, image_bytes):
-    add_or_edit_hairstylist(user_id, name, styles, salon_price, home_price, availability, location, image_bytes)
-    print("Hairstylist profile updated successfully.")
+    elif page == "Book a Stylist":
+        st.header("Book a Hairstylist")
+        if "user" not in st.session_state or st.session_state["user"]["user_type"] != "client":
+            st.warning("You need to log in as a client to book a hairstylist.")
+            return
 
-# Example Usage
-if __name__ == "__main__":
-    # Example: User signup
-    signup("stylist_jane", "securepassword123", "hairstylist")
+        stylist_id = st.number_input("Enter Stylist ID", min_value=1, step=1)
+        date = st.date_input("Select Date")
+        time = st.time_input("Select Time")
+        service_type = st.text_input("Service Type")
+        price = st.number_input("Price", min_value=0.0, step=0.01)
+        if st.button("Book Now"):
+            add_booking(st.session_state["user"]["id"], stylist_id, date.isoformat(), time.strftime("%H:%M"), service_type, price)
+            st.success("Booking request submitted successfully.")
 
-    # Example: User login
-    user = login("stylist_jane", "securepassword123")
-    
-    if user:
-        # Example: Add hairstylist profile
-        if user["user_type"] == "hairstylist":
-            manage_hairstylist_profile(
-                user_id=user["id"],
-                name="Jane Doe",
-                styles="Braids, Cuts, Coloring",
-                salon_price=50.0,
-                home_price=70.0,
-                availability="Mon-Fri, 10am-6pm",
-                location="Downtown",
-                image_bytes=None  # Replace with actual image bytes if needed
+    elif page == "Manage Profile":
+        st.header("Manage Hairstylist Profile")
+        if "user" not in st.session_state or st.session_state["user"]["user_type"] != "hairstylist":
+            st.warning("You need to log in as a hairstylist to manage your profile.")
+            return
+
+        name = st.text_input("Name")
+        styles = st.text_area("Styles Offered")
+        salon_price = st.number_input("Salon Price", min_value=0.0, step=0.01)
+        home_price = st.number_input("Home Service Price", min_value=0.0, step=0.01)
+        availability = st.text_input("Availability")
+        location = st.text_input("Location")
+        image_bytes = None  # Add file uploader for image if needed
+
+        if st.button("Save Profile"):
+            add_or_edit_hairstylist(
+                user_id=st.session_state["user"]["id"],
+                name=name,
+                styles=styles,
+                salon_price=salon_price,
+                home_price=home_price,
+                availability=availability,
+                location=location,
+                image_bytes=image_bytes
             )
+            st.success("Profile updated successfully.")
 
-        # Example: View hairstylists
-        view_hairstylists(location="Downtown")
-
-        # Example: Book a hairstylist
-        book_stylist(client_id=2, stylist_id=1, date="2023-12-20", time="2:00 PM", service_type="Haircut", price=50.0)
+if __name__ == "__main__":
+    main()
